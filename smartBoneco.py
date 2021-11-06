@@ -2,36 +2,33 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 # import SocketServer
 import json
 import cgi
+import logging
+from tion import TionApi, Breezer, Zone, MagicAir
 import time
 
+email, password = 'funtik007@list.ru', 'Puse4ka7'
 
 class Server(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
-    def _set_headers(self):
+
+    def _set_headers(self, size: int = 0):
         self.send_response(200)
-        #self.protocol_version = 'HTTP/1.1'
         self.send_header('Content-type', 'application/json')
-        #self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.send_header('Content-length', '19')
+        self.send_header('Content-length', str(size))
         self.end_headers()
-
-    #def handle_one_request(self):
-        #super(Server, self).handle_one_request()
-
-        #self.server.sessions.pop(self.client_address)
 
     def do_HEAD(self):
         self._set_headers()
 
     # GET sends back a Hello world message
     def do_GET(self):
-        time.sleep(0.1)
-        print(self.requestline, self.headers)
-        self._set_headers()
-        self.wfile.write((json.dumps({'humidity': 50.5}) + '\n').encode())
+        CO2Sensor.load()
+        payload = json.dumps({'humidity': CO2Sensor.humidity}) + '\n'
+        # payload = json.dumps({'humidity': 15.15}) + '\n'
+        self._set_headers(len(payload))
+        self.wfile.write(payload.encode())
         self.close_connection = False
-        #self.finish()
-        #self.wfile.write("<html><body><h1>hi!</h1></body></html>".encode())
+
 
     # POST echoes the message adding a JSON field
     def do_POST(self):
@@ -62,7 +59,6 @@ def run(server_class=HTTPServer, handler_class=Server, port=1880):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
 
-
     print('Starting httpd on port %d...' % port)
     httpd.serve_forever()
 
@@ -70,6 +66,8 @@ def run(server_class=HTTPServer, handler_class=Server, port=1880):
 if __name__ == "__main__":
     from sys import argv
 
+    api = TionApi(email, password, auth_fname=None)
+    CO2Sensor = api.get_devices()[3]
     if len(argv) == 2:
         run(port=int(argv[1]))
     else:
